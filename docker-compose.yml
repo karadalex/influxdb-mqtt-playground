@@ -24,3 +24,15 @@ services:
     #   - INFLUXDB_DB=${INFLUXDB_DB}
     #   - INFLUXDB_ADMIN_USER=${INFLUXDB_ADMIN_USER}
     #   - INFLUXDB_ADMIN_PASSWORD=${INFLUXDB_ADMIN_PASSWORD}
+
+  telegraf:
+    image: telegraf:1.11-alpine
+    ports:
+      - "8125:8125"
+      - "8092:8092"
+      - "8094:8094"
+    volumes:
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+      - influxdb
+      - rabbitmq

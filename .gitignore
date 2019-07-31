@@ -1,2 +1,5 @@
 .env
 telegraf.conf
+chronograf
+influxdb
+kapacitor

@@ -17,22 +17,64 @@ services:
       - "1883:1883"
 
   influxdb:
-    image: quay.io/influxdb/influxdb:2.0.0-alpha
+    image: influxdb:1.7-alpine
+    volumes:
+      # Mount for influxdb data directory
+      - ./influxdb/data:/var/lib/influxdb
+      # Mount for influxdb configuration
+      - ./influxdb/config/:/etc/influxdb/
     ports:
-      - "9999:9999"
-    # environment:
-    #   - INFLUXDB_DB=${INFLUXDB_DB}
-    #   - INFLUXDB_ADMIN_USER=${INFLUXDB_ADMIN_USER}
-    #   - INFLUXDB_ADMIN_PASSWORD=${INFLUXDB_ADMIN_PASSWORD}
+      # The API for InfluxDB is served on port 8086
+      - "8086:8086"
+      - "8082:8082"
+      # UDP Port
+      - "8089:8089/udp"
 
   telegraf:
     image: telegraf:1.11-alpine
-    ports:
-      - "8125:8125"
-      - "8092:8092"
-      - "8094:8094"
-    volumes:
-      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
-    depends_on:
+    environment:
+      HOSTNAME: "telegraf-getting-started"
+    # Telegraf requires network access to InfluxDB
+    links:
       - influxdb
+    volumes:
+      # Mount for telegraf configuration
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      # Mount for Docker API access
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
       - rabbitmq
+      - influxdb
+
+  kapacitor:
+    image: kapacitor:1.5-alpine
+    volumes:
+      # Mount for kapacitor data directory
+      - ./kapacitor/data/:/var/lib/kapacitor
+      # Mount for kapacitor configuration
+      - ./kapacitor/config/:/etc/kapacitor/
+    # Kapacitor requires network access to Influxdb
+    links:
+      - influxdb
+    ports:
+      # The API for Kapacitor is served on port 9092
+      - "9092:9092"
+
+  chronograf:
+    image: chronograf:1.7-alpine
+    environment:
+      RESOURCES_PATH: "/usr/share/chronograf/resources"
+    volumes:
+      # Mount for chronograf database
+      - ./chronograf/data/:/var/lib/chronograf/
+    links:
+      # Chronograf requires network access to InfluxDB and Kapacitor
+      - influxdb
+      - kapacitor
+    ports:
+      # The WebUI for Chronograf is served on port 8888
+      - "8888:8888"
+    depends_on:
+      - kapacitor
+      - influxdb
+      - telegraf

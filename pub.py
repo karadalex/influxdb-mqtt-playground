@@ -3,6 +3,7 @@ import random
 import time
 import json
 import pprint
+import requests
 
 
 broker = "localhost"
@@ -21,14 +22,19 @@ client.connect(broker, port, 45)
 # assign publish callback function
 client.on_publish = on_publish
 
+url = "https://min-api.cryptocompare.com/data/price"
+querystring = {"fsym":"BTC","tsyms":"USD,EUR"}
 # publish messages
-price = 9500.50
 while True:
-    priceChange = random.randint(-50, 50)
-    price = price + priceChange
+    payload = ""
+    headers = {}
+    response = requests.request("GET", url, data=payload, headers=headers, params=querystring)
+    print(response.text)
+    btcJson = json.loads(response.text)
+    btcPrice = btcJson["USD"]
     dict_msg = {
         "symbol": "BTC",
-        "price": price,
+        "price": btcPrice,
     }
     msg = json.dumps(dict_msg)
     ret = client.publish("crypto/btc", msg)
